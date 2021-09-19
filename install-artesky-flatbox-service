@@ -74,10 +74,11 @@ install.service.file() {
 printf "\n[-] Get the BOOST Library\n\n"
 sudo apt install -y libboost-dev
 # https://github.com/Artesky/artesky-flat-box/blob/master/1.2/setup_artesky-flat_1.2.0.0_arm64_ubuntu.tar.xz
-#printf "\n[-] Download the server code\n\n"
-#mkdir -p ${install_dir}/artesky_flatbox
-#cd ${install_dir}/artesky_flatbox
-#git clone https://github.com/maudy2u/artesky_flat_box.git
+
+printf "\n[-] Download the server code\n\n"
+mkdir -p ${install_dir}/artesky_flatbox
+cd ${install_dir}/artesky_flatbox
+git clone https://github.com/maudy2u/artesky_flat_box.git
 
 printf "\n[-] Download and Install the header files\n\n"
 mkdir -p ${install_dir}/libartesky_SDK/1.0.0/include
