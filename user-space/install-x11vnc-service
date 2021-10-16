@@ -5,7 +5,7 @@
 
 SRVC_NAME=x11vnx
 SRVC=${SRVC_NAME}.service
-SRVC_DIR='/lib/systemd/system/'
+SRVC_DIR='/lib/systemd/system'
 SRC_DIR=${HOME}'/src'
 APP_DIR=${SRC_DIR}'/noVNC'
 SRVC_FILE=${SRVC_DIR}/${SRVC}
@@ -44,7 +44,7 @@ install.service.file() {
   sudo echo '' >> ${SRVC_FILE}
   sudo echo '[Service]' >> ${SRVC_FILE}
   sudo echo 'Type=simple' >> ${SRVC_FILE}
-  echo 'PIDFile=/var/run/'${SRVC_NAME}'.pid' >> ${SRVC_FILE}
+  sudo echo 'PIDFile=/var/run/'${SRVC_NAME}'.pid' >> ${SRVC_FILE}
   # sudo echo 'WorkingDirectory='${install_dir}'/bin' >> ${SRVC_FILE}
   sudo echo '' >> ${SRVC_FILE}
   sudo echo 'ExecStartPre=/bin/rm -f /var/run/'${SRVC_NAME}'.pid' >> ${SRVC_FILE}
@@ -74,7 +74,7 @@ setup.service() {
   x11vnc -storepasswd
 }
 
-install.autostart.file
+# install.autostart.file
 
 install.service
 
@@ -85,5 +85,5 @@ setup.service
 install.service.file
 
 printf "\n[-] Enable and Start ${SRVC_NAME} service\n\n"
-systemctl enable ${SRVC}
-systemctl start ${SRVC}
+sudo systemctl enable ${SRVC}
+sudo systemctl start ${SRVC}
