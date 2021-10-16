@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# could use this to get the IP address
+# ifconfig eth0 | grep inet | grep -v inet6 | awk '{print $2}'
+# need to specify the network interface to use, e.g: eth0
+
+SRVC_NAME=x11vnx
+SRVC=${SRVC_NAME}.service
+SRVC_DIR='/lib/systemd/system/'
+SRC_DIR=${HOME}'/src'
+APP_DIR=${SRC_DIR}'/noVNC'
+SRVC_FILE=${SRVC_DIR}/${SRVC}
+SOURCES_DIR='/etc/apt/sources.list.d'
+SOURCES_FILE=${SOURCES_DIR}/${SRVC_NAME}.list
+SRVC_AUTOSTART=${HOME}'/.config/autostart/'${SRVC_NAME}.desktop
+AUTOSTART_DIR=${HOME}'/.config/autostart'
+
+install_dir=$(pwd)
+
+install.service() {
+  printf "\n[-] Install service: ${SRVC_NAME}\n\n"
+  sudo apt update
+  sudo apt install -y ${SRVC_NAME}
+}
+
+install.autostart.file() {
+  printf "\n[-] Install User ${SRVC_AUTOSTART}\n\n"
+  mkdir -p ${AUTOSTART_DIR}
+	echo '' > ${SRVC_AUTOSTART}
+  echo '[Desktop Entry]' >> ${SRVC_AUTOSTART}
+	echo 'Type=Application' >> ${SRVC_AUTOSTART}
+	echo 'Name='${SRVC_NAME} >> ${SRVC_AUTOSTART}
+	echo 'Exec=systemctl --user start '${SRVC} >> ${SRVC_AUTOSTART}
+	echo 'X-MATE-Autostart-enabled=true' >> ${SRVC_AUTOSTART}
+	echo 'X-GNOME-Autostart-enabled=true' >> ${SRVC_AUTOSTART}
+}
+
+install.service.file() {
+  printf "\n[-] Install ${SRVC_NAME} service file: ${SRVC_FILE}\n\n"
+  sudo mkdir -p ${SRVC_DIR}
+  sudo echo '' > ${SRVC_FILE}
+  sudo echo '[Unit]' >> ${SRVC_FILE}
+  sudo echo 'Description='${SRVC_NAME}' Server' >> ${SRVC_FILE}
+  sudo echo 'After=multi-user.target syslog.target network.target' >> ${SRVC_FILE}
+  sudo echo '' >> ${SRVC_FILE}
+  sudo echo '[Service]' >> ${SRVC_FILE}
+  sudo echo 'Type=simple' >> ${SRVC_FILE}
+  echo 'PIDFile=/var/run/'${SRVC_NAME}'.pid' >> ${SRVC_FILE}
+  # sudo echo 'WorkingDirectory='${install_dir}'/bin' >> ${SRVC_FILE}
+  sudo echo '' >> ${SRVC_FILE}
+  sudo echo 'ExecStartPre=/bin/rm -f /var/run/'${SRVC_NAME}'.pid' >> ${SRVC_FILE}
+  sudo echo 'ExecStart=/usr/bin/x11vnc -auth /var/run/lightdm/root/:0 -forever -loop -noxdamage -repeat -rfbport 5900 -shared -rfbauth '${HOME}'/.vnc/passwd -xkb' >> ${SRVC_FILE}
+  sudo echo '' >> ${SRVC_FILE}
+  sudo echo 'Restart=always' >> ${SRVC_FILE}
+  sudo echo 'RestartSec=10' >> ${SRVC_FILE}
+  sudo echo '' >> ${SRVC_FILE}
+  sudo echo 'ExecStop=/usr/bin/killall x11vnc' >> ${SRVC_FILE}
+  sudo echo 'KillSignal=SIGKILL' >> ${SRVC_FILE}
+  sudo echo '' >> ${SRVC_FILE}
+  sudo echo '[Install]' >> ${SRVC_FILE}
+  sudo echo "WantedBy=multi-user.target" >> ${SRVC_FILE}
+  sudo systemctl daemon-reload
+}
+
+install.sources.file() {
+  printf "\n[-] Install Sources for ${SRVC_NAME}\n\n"
+  #mkdir -p ${SRC_DIR}
+  #cd ${SRC_DIR}
+  #git clone https://github.com/novnc/noVNC.git
+}
+
+setup.service() {
+  printf "\n[-] Setup ${SRVC_NAME}\n\n"
+  cd ${HOME}
+  x11vnc -storepasswd
+}
+
+install.autostart.file
+
+install.service
+
+install.sources.file
+
+setup.service
+
+install.service.file
+
+printf "\n[-] Enable and Start ${SRVC_NAME} service\n\n"
+systemctl enable ${SRVC}
+systemctl start ${SRVC}

@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# could use this to get the IP address
+# ifconfig eth0 | grep inet | grep -v inet6 | awk '{print $2}'
+# need to specify the network interface to use, e.g: eth0
+
+if [ $# -lt 3 ]
+  then
+    echo ""
+    echo " *******************************"
+    echo " Install tsx_cmd Server"
+    echo " *******************************"
+		echo ": "
+		echo ": Requires three parameters: tsx_cmd_IP tsx_cmd_port mongodb_IP "
+    echo ": in the specified order: tsx_cmd_IP tsx_cmd_port mongodb_IP"
+    echo ": e.g."
+    echo ": install-tsx_cmd-service 192.168.0.1 3000 127.0.0.1"
+    echo ""
+		exit 1
+fi
+
+TSX_CMD_IP=${1}
+TSX_CMD_PORT=${2}
+MONGO_IP=${3}
+
+install_dir=$(pwd)
+SRVC_NAME=tsx_cmd
+SRVC=${SRVC_NAME}.service
+APP_DIR=${HOME}/${SRVC_NAME}
+SRVC_DIR=${HOME}'/.config/systemd/user'
+SRVC_FILE=${SRVC_DIR}/${SRVC}
+SOURCES_DIR='/etc/apt/sources.list.d'
+SOURCES_FILE=${SOURCES_DIR}/${SRVC_NAME}.list
+SRVC_AUTOSTART=${HOME}'/.config/autostart/'${SRVC_NAME}.desktop
+AUTOSTART_DIR=${HOME}'/.config/autostart'
+
+echo ""
+echo " *******************************"
+echo " Params found: "
+echo " ROOT_URL: "${1}
+echo " MONGO_URL: "${3}
+echo " PORT: "${2}
+echo " *******************************"
+echo ""
+
+install.autostart.file() {
+  mkdir -p ${AUTOSTART_DIR}
+  echo ""
+	echo " *******************************"
+  echo " Install autostart: "${SRVC_AUTOSTART}
+  echo " *******************************"
+	echo '' > ${SRVC_AUTOSTART}
+  echo '[Desktop Entry]' >> ${SRVC_AUTOSTART}
+	echo 'Type=Application' >> ${SRVC_AUTOSTART}
+	echo 'Name='${SRVC_NAME} >> ${SRVC_AUTOSTART}
+	echo 'Exec=systemctl --user start '${SRVC} >> ${SRVC_AUTOSTART}
+	echo 'X-MATE-Autostart-enabled=true' >> ${SRVC_AUTOSTART}
+	echo 'X-GNOME-Autostart-enabled=true' >> ${SRVC_AUTOSTART}
+}
+
+install.service.file() {
+  mkdir -p ${SRVC_DIR}
+  echo '  [Unit]' > ${SRVC_FILE}
+  echo '  Description=tsx_cmd - Automate TheSkyX for Imaging' >> ${SRVC_FILE}
+  echo '  Requires=mongodb.service' >> ${SRVC_FILE}
+  echo '  After=syslog.target network.target remote-fs.target' >> ${SRVC_FILE}
+  echo '  Wants=artesky_flat.service noVNC.service indigo-srv.service' >> ${SRVC_FILE}
+  echo '  ' >> ${SRVC_FILE}
+  echo '  [Service]' >> ${SRVC_FILE}
+  echo '  PIDFile=/var/run/'${SRVC_NAME}'.pid' >> ${SRVC_FILE}
+  echo '  ' >> ${SRVC_FILE}
+  echo '  Environment="MONGO_URL=mongodb://'${MONGO_IP}'/tsx_cmd"' >> ${SRVC_FILE}
+  echo '  Environment="PORT='${TSX_CMD_PORT}'"' >> ${SRVC_FILE}
+  echo '  Environment="ROOT_URL=http://'${TSX_CMD_IP}'"' >> ${SRVC_FILE}
+  echo '  Environment=PATH='${APP_DIR}'/mongodb/bin:'${APP_DIR}'/nodejs/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin' >> ${SRVC_FILE}
+  echo '  Environment="APP_DIST_DIR='${APP_DIR}'"' >> ${SRVC_FILE}
+
+  echo '  WorkingDirectory='${APP_DIR}'/bundle' >> ${SRVC_FILE}
+  echo '  ' >> ${FILE}
+  echo '  # Note the -f: don not fail if there is no PID file' >> ${SRVC_FILE}
+  echo '  ExecStartPre=/bin/rm -f /var/run/'${SRVC_NAME}'.pid' >> ${SRVC_FILE}
+  echo '  ExecStart='${APP_DIR}'/nodejs/bin/node '${APP_DIR}'/bundle/main.js' >> ${SRVC_FILE}
+  echo '  ' >> ${SRVC_FILE}
+  echo '  ExecReload=/bin/kill -s HUP $MAINPID' >> ${SRVC_FILE}
+  echo '  ExecStop=/bin/kill -s QUIT $MAINPID' >> ${SRVC_FILE}
+  echo '  KillSignal=SIGKILL' >> ${SRVC_FILE}
+  echo '  ' >> ${SRVC_FILE}
+  echo '  # limit CPU and RAM quota for our service' >> ${SRVC_FILE}
+  echo '  CPUAccounting=true' >> ${SRVC_FILE}
+  echo '  CPUQuota=10%' >> ${SRVC_FILE}
+  echo '  MemoryAccounting=true' >> ${SRVC_FILE}
+  echo '  MemoryLimit=512K' >> ${SRVC_FILE}
+  echo '  ' >> ${SRVC_FILE}
+  echo '  StandardOutput=file:'${APP_DIR}'/'${SRVC_NAME}'.log' >> ${SRVC_FILE}
+  echo '  StandardError=file:'${APP_DIR}'/'${SRVC_NAME}'.log' >> ${SRVC_FILE}
+  echo '  SyslogIdentifier=tsx_cmd' >> ${SRVC_FILE}
+  echo '  ' >> ${SRVC_FILE}
+  echo '  Restart=always' >> ${SRVC_FILE}
+  echo '  RestartSec=5' >> ${SRVC_FILE}
+  echo '  ' >> ${SRVC_FILE}
+  echo 'ExecStop=/bin/kill -s QUIT $MAINPID' >> ${SRVC_FILE}
+  echo 'KillSignal=SIGKILL' >> ${SRVC_FILE}
+  echo '' >> ${SRVC_FILE}
+  echo '[Install]' >> ${SRVC_FILE}
+  echo "WantedBy=multi-user.target" >> ${SRVC_FILE}
+}
+
+install.sources.file() {
+  echo ""
+  echo " *******************************"
+  printf "\n[-] Install Service: ${SRVC}\n\n"
+  echo " *******************************"
+}
+
+printf "\n[-] Create User Service File and start\n\n"
+install.sources.file
+# install.app
+install.service.file
+install.autostart.file
+
+printf "\n[-] Start service\n\n"
+systemctl --user daemon-reload
+systemctl --user enable ${SRVC}
+systemctl --user start ${SRVC}

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+export local_timezone="America/Moncton"
+`sudo timedatectl set-timezone ${local_timezone}`

@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# could use this to get the IP address
+# ifconfig eth0 | grep inet | grep -v inet6 | awk '{print $2}'
+# need to specify the network interface to use, e.g: eth0
+
+SRVC_NAME=noVNC
+SRVC=${SRVC_NAME}.service
+SRVC_DIR=${HOME}'/.config/systemd/user'
+SRC_DIR=${HOME}'/src'
+APP_DIR=${SRC_DIR}'/noVNC'
+SRVC_FILE=${SRVC_DIR}/${SRVC}
+SOURCES_DIR='/etc/apt/sources.list.d'
+SOURCES_FILE=${SOURCES_DIR}/${SRVC_NAME}.list
+SRVC_AUTOSTART=${HOME}'/.config/autostart/'${SRVC_NAME}.desktop
+AUTOSTART_DIR=${HOME}'/.config/autostart'
+
+install_dir=$(pwd)
+
+install.autostart.file() {
+  mkdir -p ${AUTOSTART_DIR}
+  echo ""
+	echo " *******************************"
+  echo " Install autostart: "${SRVC_AUTOSTART}
+  echo " *******************************"
+	echo '' > ${SRVC_AUTOSTART}
+  echo '[Desktop Entry]' >> ${SRVC_AUTOSTART}
+	echo 'Type=Application' >> ${SRVC_AUTOSTART}
+	echo 'Name='${SRVC_NAME} >> ${SRVC_AUTOSTART}
+	echo 'Exec=systemctl --user start '${SRVC} >> ${SRVC_AUTOSTART}
+	echo 'X-MATE-Autostart-enabled=true' >> ${SRVC_AUTOSTART}
+	echo 'X-GNOME-Autostart-enabled=true' >> ${SRVC_AUTOSTART}
+}
+
+install.service.file() {
+  mkdir -p ${SRVC_DIR}
+  echo ""
+  echo " *******************************"
+  echo " Install service file: "${SRVC_FILE}
+  echo " *******************************"
+  echo '' > ${SRVC_FILE}
+  echo '[Unit]' >> ${SRVC_FILE}
+  echo 'Description=noVNC Server' >> ${SRVC_FILE}
+  echo 'After=multi-user.target syslog.target network.target remote-fs.target' >> ${SRVC_FILE}
+  echo '' >> ${SRVC_FILE}
+  echo '[Service]' >> ${SRVC_FILE}
+  echo 'Type=idle' >> ${SRVC_FILE}
+  echo 'PIDFile=/var/run/'${SRVC_NAME}'.pid' >> ${SRVC_FILE}
+  # echo 'WorkingDirectory='${install_dir}'/bin' >> ${SRVC_FILE}
+  echo '' >> ${SRVC_FILE}
+  echo 'ExecStartPre=/bin/rm -f /var/run/'${SRVC_NAME}'.pid' >> ${SRVC_FILE}
+  echo 'ExecStart='${APP_DIR}'/utils/novnc_proxy --vnc localhost:5900' >> ${SRVC_FILE}
+  echo '' >> ${SRVC_FILE}
+  echo 'Restart=always' >> ${SRVC_FILE}
+  echo 'RestartSec=10' >> ${SRVC_FILE}
+  echo '' >> ${SRVC_FILE}
+  echo 'ExecStop=/bin/kill -s QUIT $MAINPID' >> ${SRVC_FILE}
+  echo 'KillSignal=SIGKILL' >> ${SRVC_FILE}
+  echo '' >> ${SRVC_FILE}
+  echo '[Install]' >> ${SRVC_FILE}
+  echo "WantedBy=multi-user.target" >> ${SRVC_FILE}
+}
+
+install.sources.file() {
+  echo ""
+  echo " *******************************"
+  echo " Install Source: "${SRVC_NAME}
+  echo " *******************************"
+  mkdir -p ${SRC_DIR}
+  cd ${SRC_DIR}
+  git clone https://github.com/novnc/noVNC.git
+}
+
+install.dependencies() {
+  echo ""
+  echo " *******************************"
+  echo " Install Dependencies: "${SRVC_NAME}
+  echo " *******************************"
+  sudo apt update
+  sudo apt install git
+}
+
+printf "\n[-] Install dependencies\n\n"
+install.dependencies
+
+printf "\n[-] Install ${SRVC_NAME}\n\n"
+install.sources.file
+
+printf "\n[-] Create User Service File\n\n"
+install.service.file
+#install.autostart.file
+sudo systemctl daemon-reload
+
+printf "\n[-] Start service\n\n"
+systemctl --user daemon-reload
+systemctl --user enable ${SRVC}
+systemctl --user start ${SRVC}
+
+printf "\n[-] Browser: e.g.: http://localhost:6080/vnc.html?host=localhost&port=6080\n\n"
