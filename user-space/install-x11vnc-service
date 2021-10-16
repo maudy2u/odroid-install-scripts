@@ -3,7 +3,7 @@
 # ifconfig eth0 | grep inet | grep -v inet6 | awk '{print $2}'
 # need to specify the network interface to use, e.g: eth0
 
-SRVC_NAME=x11vnx
+SRVC_NAME=x11vnc
 SRVC=${SRVC_NAME}.service
 SRVC_DIR='/lib/systemd/system'
 SRC_DIR=${HOME}'/src'
