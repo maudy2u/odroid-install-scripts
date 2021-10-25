@@ -36,28 +36,29 @@ install.autostart.file() {
 
 install.service.file() {
   printf "\n[-] Install ${SRVC_NAME} service file: ${SRVC_FILE}\n\n"
-  sudo mkdir -p ${SRVC_DIR}
-  sudo echo '' > ${SRVC_FILE}
-  sudo echo '[Unit]' >> ${SRVC_FILE}
-  sudo echo 'Description='${SRVC_NAME}' Server' >> ${SRVC_FILE}
-  sudo echo 'After=multi-user.target syslog.target network.target' >> ${SRVC_FILE}
-  sudo echo '' >> ${SRVC_FILE}
-  sudo echo '[Service]' >> ${SRVC_FILE}
-  sudo echo 'Type=simple' >> ${SRVC_FILE}
-  sudo echo 'PIDFile=/var/run/'${SRVC_NAME}'.pid' >> ${SRVC_FILE}
-  # sudo echo 'WorkingDirectory='${install_dir}'/bin' >> ${SRVC_FILE}
-  sudo echo '' >> ${SRVC_FILE}
-  sudo echo 'ExecStartPre=/bin/rm -f /var/run/'${SRVC_NAME}'.pid' >> ${SRVC_FILE}
-  sudo echo 'ExecStart=/usr/bin/x11vnc -auth /var/run/lightdm/root/:0 -forever -loop -noxdamage -repeat -rfbport 5900 -shared -rfbauth '${HOME}'/.vnc/passwd -xkb' >> ${SRVC_FILE}
-  sudo echo '' >> ${SRVC_FILE}
-  sudo echo 'Restart=always' >> ${SRVC_FILE}
-  sudo echo 'RestartSec=10' >> ${SRVC_FILE}
-  sudo echo '' >> ${SRVC_FILE}
-  sudo echo 'ExecStop=/usr/bin/killall x11vnc' >> ${SRVC_FILE}
-  sudo echo 'KillSignal=SIGKILL' >> ${SRVC_FILE}
-  sudo echo '' >> ${SRVC_FILE}
-  sudo echo '[Install]' >> ${SRVC_FILE}
-  sudo echo "WantedBy=multi-user.target" >> ${SRVC_FILE}
+  sudo bash -c "cat << EOF > ${SRVC_FILE}
+[Unit]
+Description=${SRVC_NAME} Server
+sudo echo After=multi-user.target syslog.target network.target
+
+[Service]
+User=root
+Type=simple
+PIDFile=/var/run/${SRVC_NAME}.pid
+# WorkingDirectory=${install_dir}
+
+ExecStartPre=/bin/rm -f /var/run/${SRVC_NAME}.pid
+ExecStart=/usr/bin/x11vnc -auth /var/run/lightdm/root/:0 -forever -loop -noxdamage -repeat -rfbport 5900 -shared -rfbauth ${HOME}/.vnc/passwd -xkb
+
+Restart=always
+RestartSec=10
+ExecStop=/usr/bin/killall x11vnc
+KillSignal=SIGKILL
+
+[Install]
+WantedBy=multi-user.target
+EOF
+"
   sudo systemctl daemon-reload
 }
 

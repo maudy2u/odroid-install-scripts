@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# could use this to get the IP address
+# ifconfig eth0 | grep inet | grep -v inet6 | awk '{print $2}'
+# need to specify the network interface to use, e.g: eth0
+
+HOSTNAME=`hostname`
+SRVC_NAME=samba
+SRVC=${SRVC_NAME}.service
+SRVC_DIR='/lib/systemd/system'
+SRVC_FILE=${SRVC_DIR}/${SRVC}
+SRVC_CONFIG='/etc/samba/smb.conf'
+
+install_dir=$(pwd)
+
+install.service() {
+  printf "\n[-] Install service: ${SRVC_NAME}\n\n"
+  sudo apt update
+  sudo apt install -y ${SRVC_NAME}
+}
+
+install.dependencies() {
+  printf "\n[-] Install dependencies: ${SRVC_NAME}\n\n"
+  sudo apt install -y caja-share
+  sudo killall caja
+}
+
+setup.service() {
+  printf "\n[-] Setup ${SRVC_NAME}\n\n"
+sudo bash -c "cat << EOF >> ${SRVC_CONFIG}
+[${HOSTNAME}_home]
+path = /home/${USER}
+valid users = ${USER}
+read only = no
+EOF
+"
+
+  cd ${HOME}
+  sudo smbpasswd -a ${USER}
+  sudo usermod -a -G sambashare ${USER}
+}
+
+install.service
+install.dependencies
+setup.service
+
+printf "\n[-] Completed ${SRVC_NAME} service install\n\n"

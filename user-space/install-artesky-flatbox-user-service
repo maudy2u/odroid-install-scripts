@@ -12,7 +12,7 @@ if [ $# -eq 0 ] || [ $# -lt 2 ]
 		echo ": "
 		echo ": Requires two parameters - the IP of the host server, and the device to use"
     echo ": e.g."
-    echo ": install_artesky_srv.sh 192.168.0.1 ttyACM0"
+    echo ": install_artesky_srv.sh 192.168.0.1 ttyARTESKYFLAT"
 		exit 1
 fi
 

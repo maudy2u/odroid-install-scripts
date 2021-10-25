@@ -3,118 +3,62 @@
 # ifconfig eth0 | grep inet | grep -v inet6 | awk '{print $2}'
 # need to specify the network interface to use, e.g: eth0
 
+SRVC_NAME="32 bit ARMFH User space for TheSkyX"
+
 if [ $# -eq 0 ] || [ $# -lt 1 ]
   then
-    echo ""
-    echo " *******************************"
-    echo " Install Indigo Server"
-    echo " *******************************"
+    printf "\n[-] Install/remove ${SRVC_NAME} \n\n"
 		echo ": "
-		echo ": Requires at least one driver"
+		echo ": Requires at least one command"
     echo ": e.g."
-    echo ": install_indigo indigo_ccd_asi"
+    echo ": install-32bit-userspace install"
     echo ": or..."
-    echo ": install_indigo indigo_aux_upb indigo_ccd_asi indigo_aux_arteskyflat indigo_gps_gpsd -i indi_paramount_telescope"
+    echo ": install-32bit-userspace remove"
     echo ""
 		exit 1
 fi
 
-SRVC_NAME=indigo-srv
-SRVC=${SRVC_NAME}.service
-SRVC_DIR=${HOME}'/.config/systemd/user'
-SRVC_FILE=${SRVC_DIR}/${SRVC}
-SOURCES_DIR='/etc/apt/sources.list.d'
-SOURCES_FILE=${SOURCES_DIR}/${SRVC_NAME}.list
-SRVC_AUTOSTART=${HOME}'/.config/autostart/'${SRVC_NAME}.desktop
-AUTOSTART_DIR=${HOME}'/.config/autostart'
+ACTION=${1}
 
-drivers=()
-while [[ $# -gt 0 ]]; do
-  param="$1"
-  if [[ ${param} == "install-indigo" ]]
-  then
-    shift
-  else
-    drivers+="$param "  # save it in an array for later
-    shift # move to next
-  fi
-done
+install.armhf() {
+  printf "\n[-] Add ARMHF\n\n"
+  sudo dpkg --add-architecture armhf
+  sudo apt update
 
-echo ""
-echo " *******************************"
-echo " Drivers found: "${drivers}
-echo " *******************************"
-echo ""
+  printf "\n[-] Install libC6\n\n"
+  sudo apt install -y libc6:armhf
 
-install_dir=$(pwd)
+  printf "\n[-] Symbolic link libC6\n\n"
+  sudo ln -s /lib/ld-linux-armhf.so.3 /lib/ld-linux.so.3
 
-install.autostart.file() {
-  mkdir -p ${AUTOSTART_DIR}
-  echo ""
-	echo " *******************************"
-  echo " Install autostart: "${SRVC_AUTOSTART}
-  echo " *******************************"
-	echo '' > ${SRVC_AUTOSTART}
-  echo '[Desktop Entry]' >> ${SRVC_AUTOSTART}
-	echo 'Type=Application' >> ${SRVC_AUTOSTART}
-	echo 'Name='${SRVC_NAME} >> ${SRVC_AUTOSTART}
-	echo 'Exec=systemctl --user start '${SRVC} >> ${SRVC_AUTOSTART}
-	echo 'X-MATE-Autostart-enabled=true' >> ${SRVC_AUTOSTART}
-	echo 'X-GNOME-Autostart-enabled=true' >> ${SRVC_AUTOSTART}
+  printf "\n[-] Install ARMFH user space libraries\n\n"
+# sudo apt install libbsd0:armhf libc6:armhf libdbus-1-3:armhf libdrm-amdgpu1:armhf libdrm-etnaviv1:armhf libdrm-freedreno1:armhf libdrm-nouveau2:armhf libdrm-radeon1:armhf libdrm2:armhf libedit2:armhf libelf1:armhf libexpat1:armhf  libfreetype6:armhf libgcc1:armhf libgcrypt20:armhf libgl1:armhf libgl1-mesa-dri:armhf libglapi-mesa:armhf libglvnd0:armhf libglx-mesa0:armhf libglx0:armhf libgomp1:armhf libgpg-error0:armhf libllvm7:armhf liblz4-1:armhf liblzma5:armhf libpng16-16:armhf libstdc++6:armhf libsystemd0:armhf libtinfo5:armhf libudev-dev:armhf libudev1:armhf libx11-6:armhf libx11-xcb1:armhf libxau6:armhf libxcb-dri2-0:armhf libxcb-dri3-0:armhf libxcb-glx0:armhf libxcb-present0:armhf libxcb-sync1:armhf libxcb1:armhf libxdamage1:armhf libxdmcp6:armhf libxext6:armhf libxfixes3:armhf libxshmfence1:armhf libxxf86vm1:armhf zlib1g:armhf libusb-1.0-0:armhf
+sudo apt install -y libbsd0:armhf libc6:armhf libdbus-1-3:armhf libdrm-amdgpu1:armhf libdrm-etnaviv1:armhf libdrm-freedreno1:armhf libdrm-nouveau2:armhf libdrm-radeon1:armhf libdrm2:armhf libedit2:armhf libelf1:armhf libexpat1:armhf  libfreetype6:armhf libgcc1:armhf libgcrypt20:armhf libgl1:armhf libgl1-mesa-dri:armhf libglapi-mesa:armhf libglvnd0:armhf libglx-mesa0:armhf libglx0:armhf libgomp1:armhf libgpg-error0:armhf libllvm7:armhf liblz4-1:armhf liblzma5:armhf libpng16-16:armhf libsystemd0:armhf libtinfo5:armhf libudev-dev:armhf libudev1:armhf libx11-6:armhf libx11-xcb1:armhf libxau6:armhf libxcb-dri2-0:armhf libxcb-dri3-0:armhf libxcb-glx0:armhf libxcb-present0:armhf libxcb-sync1:armhf libxcb1:armhf libxdamage1:armhf libxdmcp6:armhf libxext6:armhf libxfixes3:armhf libxshmfence1:armhf libxxf86vm1:armhf zlib1g:armhf
 }
 
-install.service.file() {
-  mkdir -p ${SRVC_DIR}
-  echo ""
-  echo " *******************************"
-  echo " Install service: "${SRVC_FILE}
-  echo " *******************************"
-  echo '' > ${SRVC_FILE}
-  echo '[Unit]' >> ${SRVC_FILE}
-  echo 'Description=INDIGO Server' >> ${SRVC_FILE}
-  echo 'After=multi-user.target syslog.target network.target remote-fs.target' >> ${SRVC_FILE}
-  echo '' >> ${SRVC_FILE}
-  echo '[Service]' >> ${SRVC_FILE}
-  echo 'Type=idle' >> ${SRVC_FILE}
-  echo 'PIDFile=/var/run/'${SRVC_NAME}'.pid' >> ${SRVC_FILE}
-  # echo 'WorkingDirectory='${install_dir}'/bin' >> ${SRVC_FILE}
-  echo '' >> ${SRVC_FILE}
-  echo 'ExecStartPre=/bin/rm -f /var/run/'${SRVC_NAME}'.pid' >> ${SRVC_FILE}
-  echo 'ExecStart=/usr/bin/indigo_server '${drivers} >> ${SRVC_FILE}
-  echo '' >> ${SRVC_FILE}
-  echo 'Restart=always' >> ${SRVC_FILE}
-  echo 'RestartSec=10' >> ${SRVC_FILE}
-  echo '' >> ${SRVC_FILE}
-  echo 'ExecStop=/bin/kill -s QUIT $MAINPID' >> ${SRVC_FILE}
-  echo 'KillSignal=SIGKILL' >> ${SRVC_FILE}
-  echo '' >> ${SRVC_FILE}
-  echo '[Install]' >> ${SRVC_FILE}
-  echo "WantedBy=multi-user.target" >> ${SRVC_FILE}
+remove.armhf() {
+  printf "\n[-] Remove ARMFH user space libraries\n\n"
+# sudo apt remove libbsd0:armhf libc6:armhf libdbus-1-3:armhf libdrm-amdgpu1:armhf libdrm-etnaviv1:armhf libdrm-freedreno1:armhf libdrm-nouveau2:armhf libdrm-radeon1:armhf libdrm2:armhf libedit2:armhf libelf1:armhf libexpat1:armhf  libfreetype6:armhf libgcc1:armhf libgcrypt20:armhf libgl1:armhf libgl1-mesa-dri:armhf libglapi-mesa:armhf libglvnd0:armhf libglx-mesa0:armhf libglx0:armhf libgomp1:armhf libgpg-error0:armhf libllvm7:armhf liblz4-1:armhf liblzma5:armhf libpng16-16:armhf libstdc++6:armhf libsystemd0:armhf libtinfo5:armhf libudev-dev:armhf libudev1:armhf libx11-6:armhf libx11-xcb1:armhf libxau6:armhf libxcb-dri2-0:armhf libxcb-dri3-0:armhf libxcb-glx0:armhf libxcb-present0:armhf libxcb-sync1:armhf libxcb1:armhf libxdamage1:armhf libxdmcp6:armhf libxext6:armhf libxfixes3:armhf libxshmfence1:armhf libxxf86vm1:armhf zlib1g:armhf libusb-1.0-0:armhf
+sudo apt remove -y  --purge  libbsd0:armhf libc6:armhf libdbus-1-3:armhf libdrm-amdgpu1:armhf libdrm-etnaviv1:armhf libdrm-freedreno1:armhf libdrm-nouveau2:armhf libdrm-radeon1:armhf libdrm2:armhf libedit2:armhf libelf1:armhf libexpat1:armhf  libfreetype6:armhf libgcc1:armhf libgcrypt20:armhf libgl1:armhf libgl1-mesa-dri:armhf libglapi-mesa:armhf libglvnd0:armhf libglx-mesa0:armhf libglx0:armhf libgomp1:armhf libgpg-error0:armhf libllvm7:armhf liblz4-1:armhf liblzma5:armhf libpng16-16:armhf libsystemd0:armhf libtinfo5:armhf libudev-dev:armhf libudev1:armhf libx11-6:armhf libx11-xcb1:armhf libxau6:armhf libxcb-dri2-0:armhf libxcb-dri3-0:armhf libxcb-glx0:armhf libxcb-present0:armhf libxcb-sync1:armhf libxcb1:armhf libxdamage1:armhf libxdmcp6:armhf libxext6:armhf libxfixes3:armhf libxshmfence1:armhf libxxf86vm1:armhf zlib1g:armhf
+
+  printf "\n[-] Remove Symbolic link libC6\n\n"
+  sudo rm /lib/ld-linux.so.3
+
+  printf "\n[-] Remove libC6\n\n"
+  sudo apt remove --purge -y libc6:armhf
+
+  printf "\n[-] Remove ARMHF\n\n"
+  sudo dpkg --remove-architecture armhf
+  sudo apt update
 }
 
-install.sources.file() {
-  echo ""
-  echo " *******************************"
-  echo " Install Sources: "${SOURCES_FILE}
-  echo " *******************************"
-sudo bash -c "cat > ${SOURCES_FILE} <<- EOF
-deb [trusted=yes] https://indigo-astronomy.github.io/indigo_ppa/ppa indigo main
-EOF"
-}
+if [[ ${ACTION} == "install" ]]; then
+  install.armhf
+elif [[ ${ACTION} == "remove" ]]; then
+  remove.armhf
+else
+  printf "\n[-] Uknown command: ${ACTION}... exiting\n\n"
+  exit 2
+fi
 
-printf "\n[-] Create User Service File and start\n\n"
-install.sources.file
-install.service.file
-install.autostart.file
-
-printf "\n[-] Install Service: ${SRVC}\n\n"
-sudo apt update
-sudo apt-get install indigo
-sudo systemctl daemon-reload
-sudo systemctl stop indigo-environment
-sudo systemctl disable indigo-environment
-
-printf "\n[-] Start service\n\n"
-systemctl --user daemon-reload
-systemctl --user enable ${SRVC}
-systemctl --user start ${SRVC}
+printf "\n[-] COMPLETE\n\n"
